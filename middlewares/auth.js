@@ -28,24 +28,49 @@ function isOwner(type) {
     const { id } = req.params;
     const user = res.locals.user;
 
-    if (type === "post") {
-      const post = await prisma.post.findUnique({
-        where: { id: Number(id) },
-      });
-      if (post && post.userId === user.id) return next();
-    }
+    try {
+      if (type === "post") {
+        const post = await prisma.post.findUnique({
+          where: { id: Number(id) },
+        });
+        if (!post) {
+          return res.status(404).json({ msg: "Post not found" });
+        }
+        if (post.userId === user.id) {
+          return next();
+        } else {
+          return res.status(403).json({ msg: "Unauthorized to delete post" });
+        }
+      }
 
-    if (type === "comment") {
-      const comment = await prisma.comment.findUnique({
-        where: { id: Number(id) },
-        include: {
-          post: true,
-        },
-      });
-      if (comment.post.userId === user.id || comment.userId == user.id)
-        return next();
+      if (type === "comment") {
+        const comment = await prisma.comment.findUnique({
+          where: { id: Number(id) },
+          include: {
+            post: true,
+          },
+        });
+
+        if (!comment) {
+          return res.status(404).json({ msg: "Comment not found" });
+        }
+
+        // Check if the user is either the owner of the post or the owner of the comment
+        if (comment.post.userId === user.id || comment.userId === user.id) {
+          return next();
+        } else {
+          return res
+            .status(403)
+            .json({ msg: "Unauthorized to delete comment" });
+        }
+      }
+
+      // If no valid type is provided
+      return res.status(400).json({ msg: "Invalid request type" });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ msg: "Server error" });
     }
-    res.status(403).json({ msg: "Unauthorize to delete" });
   };
 }
 
