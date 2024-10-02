@@ -14,7 +14,7 @@ router.get("/posts", async (req, res) => {
         likes: true,
       },
       orderBy: { id: "desc" },
-      take: 20,
+      take: 60,
     });
     res.json(data);
   } catch (e) {
